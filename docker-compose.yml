@@ -7,18 +7,27 @@ services:
     restart: unless-stopped
     container_name: freqtrade-hf
     tty: true
-    # host 网络：共享宿主机网络栈，直接复用宿主机 TUN 代理访问币安
-    # （bridge 模式下容器无法走宿主机 7890 代理，Clash 会拒绝非本机来源）
-    network_mode: host
     volumes:
       - "./user_data:/freqtrade/user_data"
+    ports:
+      - "8087:8080"
     environment:
       # api key 通过环境变量注入，不落 config.json（见 .env.example）
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_BACKUP_API_KEY=${LLM_BACKUP_API_KEY:-}
+    # 复用 ft-userdata-llm-share 的 docker 网络：
+    # 宿主机 Clash 透明代理的 iptables 规则只覆盖已存在的 docker 网段，
+    # 新建网段的容器访问币安会被 DNS 污染导致超时，加入该网络即可走通。
+    networks:
+      - hf_net
     command: >
       trade
       --logfile /freqtrade/user_data/logs/freqtrade.log
       --db-url sqlite:////freqtrade/user_data/tradesv3.sqlite
       --config /freqtrade/user_data/config.json
       --strategy LLMHedgeFundStrategy
+
+networks:
+  hf_net:
+    external: true
+    name: ft-userdata-llm-share_default
