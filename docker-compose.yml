@@ -7,10 +7,11 @@ services:
     restart: unless-stopped
     container_name: freqtrade-hf
     tty: true
+    # host 网络：共享宿主机网络栈，直接复用宿主机 TUN 代理访问币安
+    # （bridge 模式下容器无法走宿主机 7890 代理，Clash 会拒绝非本机来源）
+    network_mode: host
     volumes:
       - "./user_data:/freqtrade/user_data"
-    ports:
-      - "8087:8080"
     environment:
       # api key 通过环境变量注入，不落 config.json（见 .env.example）
       - LLM_API_KEY=${LLM_API_KEY:-}

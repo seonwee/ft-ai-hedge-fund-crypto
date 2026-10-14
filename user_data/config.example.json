@@ -67,7 +67,9 @@
         }
     ],
     "telegram": {
-        "enabled": false
+        "enabled": false,
+        "token": "your-telegram-bot-token",
+        "chat_id": "your-telegram-chat-id"
     },
     "api_server": {
         "enabled": true,

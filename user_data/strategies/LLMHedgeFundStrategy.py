@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from freqtrade.persistence import Trade
-from freqtrade.strategy import IStrategy, informative, merge_informative_pair
+from freqtrade.strategy import IStrategy, informative
 
 from llm_modules.indicators.indicator_calculator import IndicatorCalculator
 from llm_modules.utils.config_loader import ConfigLoader
@@ -51,15 +51,15 @@ class LLMHedgeFundStrategy(IStrategy):
     """
     五信号 + LLM 决策的加密货币期货策略。
 
-    主周期可配置（默认 1h），辅助周期 30m/4h/1d。
+    主周期可配置（默认 1h），辅助周期 4h/1d（freqtrade informative 仅支持 ≥ 主周期）。
     """
 
     INTERFACE_VERSION = 3
     can_short = True
     timeframe = '1h'
 
-    # 1h * 250 ≈ 10 天；确保 hf 动量（最长 126 周期）与 Hurst 窗口稳定
-    startup_candle_count = 300
+    # 1h * 800 ≈ 33 天；确保 4h 五信号（min_candles=200 根 4h）有足够历史
+    startup_candle_count = 800
 
     # 极端止损兜底；实际平仓由 LLM 决策
     stoploss = -0.99
@@ -153,6 +153,7 @@ class LLMHedgeFundStrategy(IStrategy):
     # ------------------------------------------------------------------
 
     def populate_indicators(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
+        """主周期（1h）指标 + 五信号层"""
         dataframe = IndicatorCalculator.add_all_indicators(dataframe)
 
         # 五信号层：写入 8 个 hf_* 数值列 + 生成信号面板
@@ -163,23 +164,27 @@ class LLMHedgeFundStrategy(IStrategy):
             hurst_window=self.hf_config.get('hurst_window', 126),
             min_candles=self.hf_config.get('min_candles', 200),
         )
-        # 信号面板缓存到实例，供决策与降级使用（按 pair 存最新一版）
-        self._last_panel = panel
+        self._last_panel = panel  # 主周期信号面板，供决策与降级使用
 
-        # 多周期：30m/4h/1d 的 TA-Lib 指标（hf 信号仅主周期计算，避免口径混乱）
-        dataframe = merge_informative_pair(
-            dataframe, self.dp.get_pair_dataframe(metadata['pair'], '30m'), self.timeframe,
-            '30m', ffill=True)
-        dataframe = merge_informative_pair(
-            dataframe, self.dp.get_pair_dataframe(metadata['pair'], '4h'), self.timeframe,
-            '4h', ffill=True)
-        dataframe = merge_informative_pair(
-            dataframe, self.dp.get_pair_dataframe(metadata['pair'], '1d'), self.timeframe,
-            '1d', ffill=True)
+        return dataframe
 
-        for tf in ('30m', '4h', '1d'):
-            IndicatorCalculator.add_all_indicators(dataframe)
+    @informative('4h')
+    def populate_indicators_4h(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
+        """4h 周期指标 + 五信号层（自动 merge 为 *_4h 列）"""
+        dataframe = IndicatorCalculator.add_all_indicators(dataframe)
+        dataframe, _ = add_hf_columns(
+            dataframe,
+            weights=self.hf_config.get('strategy_weights'),
+            threshold=self.hf_config.get('signal_threshold', 0.2),
+            hurst_window=self.hf_config.get('hurst_window', 126),
+            min_candles=self.hf_config.get('min_candles', 200),
+        )
+        return dataframe
 
+    @informative('1d')
+    def populate_indicators_1d(self, dataframe: pd.DataFrame, metadata: dict) -> pd.DataFrame:
+        """1d 周期指标（自动 merge 为 *_1d 列）；仅 TA-Lib，不计算五信号（数据窗口需求过大）"""
+        dataframe = IndicatorCalculator.add_all_indicators(dataframe)
         return dataframe
 
     # ------------------------------------------------------------------
