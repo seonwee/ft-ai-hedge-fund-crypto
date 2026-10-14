@@ -222,7 +222,9 @@ class ContextBuilder:
         indicators_1d = []
 
         for col in latest.index:
-            if col in excluded_cols:
+            if col in excluded_cols or str(col).startswith('hf_'):
+                # hf_* 是五信号集成列，统一在专门的【量化信号面板】段呈现，
+                # 不混入技术指标段，避免与 TA-Lib 指标口径冲突（如两个 adx）
                 continue
 
             value = latest[col]

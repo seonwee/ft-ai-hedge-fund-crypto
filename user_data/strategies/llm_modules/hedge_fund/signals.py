@@ -390,23 +390,77 @@ def add_hf_columns(
     return df, panel
 
 
+_SIGNAL_CN = {"bullish": "看多", "bearish": "看空", "neutral": "中性"}
+
+_SUB_NAME_CN = {
+    "trend": "趋势跟踪",
+    "mean_reversion": "均值回归",
+    "momentum": "动量",
+    "volatility": "波动率",
+    "stat_arb": "统计套利",
+}
+
+# 面板里保留的关键指标（中文名），其余 metrics 折叠掉，减少噪声
+_METRIC_CN = {
+    "adx": "ADX",
+    "trend_strength": "趋势强度",
+    "ema_8": "EMA8",
+    "ema_21": "EMA21",
+    "ema_55": "EMA55",
+    "z_score": "Z分数",
+    "price_vs_bb": "布林位置",
+    "rsi_14": "RSI14",
+    "rsi_28": "RSI28",
+    "momentum_1m": "1月动量",
+    "momentum_3m": "3月动量",
+    "momentum_6m": "6月动量",
+    "volume_momentum": "量能比",
+    "historical_volatility": "年化波动率",
+    "volatility_regime": "波动区间",
+    "volatility_z_score": "波动Z分数",
+    "atr_ratio": "ATR比率",
+    "hurst_exponent": "Hurst指数",
+    "skewness": "偏度",
+    "kurtosis": "峰度",
+}
+
+
+def _fmt_metrics(metrics: Dict[str, float]) -> str:
+    parts = []
+    for k, v in metrics.items():
+        label = _METRIC_CN.get(k)
+        if label is None:
+            continue
+        if isinstance(v, float):
+            parts.append(f"{label}={v:.3f}" if abs(v) < 100 else f"{label}={v:.2f}")
+        else:
+            parts.append(f"{label}={v}")
+    return "，".join(parts)
+
+
 def format_signal_panel_for_prompt(panel: Dict[str, Any]) -> str:
-    """把信号面板格式化为提示词文本块（含 hf_* 口径说明）。"""
+    """把信号面板格式化为提示词文本块（中文、清晰、独立口径）。"""
     if not panel:
         return "（五信号层数据不足，未生成）"
 
     sub = panel["sub_signals"]
+    score = float(panel["score"])
+    combined_cn = _SIGNAL_CN.get(panel["signal"], panel["signal"])
+
     lines = [
-        "【量化信号面板 · hf 系列（移植自 ai-hedge-fund-crypto 的五信号加权集成，独立口径）】",
-        f"综合信号: {panel['signal']} | score: {panel['score']:+.3f} | confidence: {panel['confidence']:.3f}",
-        "子信号（signal 取值 bullish/bearish/neutral，confidence 为 0-1 置信度）：",
+        "【量化信号面板 · 五信号加权集成】",
+        f"综合：{combined_cn}（score {score:+.2f}，满分±1，越过 ±0.2 才转多/空）",
+        "子信号（各维度独立判断，加权融合后得综合 score）：",
     ]
     for name, sig in sub.items():
-        metrics_str = ", ".join(f"{k}={v}" for k, v in sig["metrics"].items())
-        lines.append(
-            f"  - {name}: {sig['signal']} (conf {sig['confidence']:.2f}) | {metrics_str}"
-        )
+        s = _SIGNAL_CN.get(sig["signal"], sig["signal"])
+        conf = float(sig["confidence"]) * 100
+        metrics = _fmt_metrics(sig["metrics"])
+        line = f"  · {_SUB_NAME_CN.get(name, name)}：{s}（置信{conf:.0f}%）"
+        if metrics:
+            line += f"｜{metrics}"
+        lines.append(line)
     lines.append(
-        "解读要点：score>0.2 偏多、<-0.2 偏空、其余中性；hf 系列与其他技术指标口径不同属正常，仅供参考，不构成硬规则。"
+        "（hf 为独立 pandas 口径，与上方 TA-Lib 指标数值不同属正常；仅供参考，非硬规则）"
     )
     return "\n".join(lines)
