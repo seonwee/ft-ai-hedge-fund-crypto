@@ -1,0 +1,165 @@
+{
+    "$schema": "https://schema.freqtrade.io/schema.json",
+    "max_open_trades": 3,
+    "stake_currency": "USDT",
+    "stake_amount": "unlimited",
+    "tradable_balance_ratio": 0.99,
+    "fiat_display_currency": "USD",
+    "dry_run": true,
+    "dry_run_wallet": 10000,
+    "cancel_open_orders_on_exit": false,
+    "trading_mode": "futures",
+    "margin_mode": "isolated",
+    "unfilledtimeout": {
+        "entry": 5,
+        "exit": 5,
+        "exit_timeout_count": 0,
+        "unit": "minutes"
+    },
+    "entry_pricing": {
+        "price_side": "other",
+        "use_order_book": true,
+        "order_book_top": 1,
+        "price_last_balance": 0.0,
+        "check_depth_of_market": {
+            "enabled": false,
+            "bids_to_ask_delta": 1
+        }
+    },
+    "exit_pricing": {
+        "price_side": "other",
+        "use_order_book": true,
+        "order_book_top": 1
+    },
+    "order_types": {
+        "entry": "market",
+        "exit": "market",
+        "emergency_exit": "market",
+        "force_exit": "market",
+        "force_entry": "market",
+        "stoploss": "market",
+        "stoploss_on_exchange": false
+    },
+    "exchange": {
+        "name": "binance",
+        "key": "your-binance-api-key",
+        "secret": "your-binance-api-secret",
+        "ccxt_config": {
+            "enableRateLimit": true,
+            "options": {
+                "defaultType": "future"
+            }
+        },
+        "ccxt_async_config": {
+            "enableRateLimit": true,
+            "rateLimit": 200,
+            "timeout": 30000
+        },
+        "pair_whitelist": [
+            "BTC/USDT:USDT",
+            "ETH/USDT:USDT"
+        ],
+        "pair_blacklist": []
+    },
+    "pairlists": [
+        {
+            "method": "StaticPairList"
+        }
+    ],
+    "telegram": {
+        "enabled": false
+    },
+    "api_server": {
+        "enabled": true,
+        "listen_ip_address": "0.0.0.0",
+        "listen_port": 8080,
+        "verbosity": "error",
+        "enable_openapi": true,
+        "jwt_secret_key": "please-change-me-to-a-random-string",
+        "ws_token": "please-change-me-to-a-random-string",
+        "CORS_origins": [],
+        "username": "freqtrader",
+        "password": "your-secure-password"
+    },
+    "strategy": "LLMHedgeFundStrategy",
+    "bot_name": "LLM-HedgeFund-Crypto-v1",
+    "initial_state": "running",
+    "force_entry_enable": true,
+    "position_adjustment_enable": true,
+    "max_entry_position_adjustment": 10,
+    "process_only_new_candles": true,
+    "internals": {
+        "process_throttle_secs": 3
+    },
+    "llm_config": {
+        "api_base": "https://api.deepseek.com/v1",
+        "api_key": "",
+        "model": "deepseek-chat",
+        "timeout": 120,
+        "max_retries": 2,
+        "backup": {
+            "api_base": "https://api.deepseek.com/v1",
+            "api_key": "",
+            "model": "deepseek-reasoner",
+            "timeout": 180,
+            "max_retries": 1
+        }
+    },
+    "risk_management": {
+        "max_leverage": 20,
+        "default_leverage": 3,
+        "max_position_pct": 20,
+        "max_open_trades": 3,
+        "emergency_stop_loss": -0.15
+    },
+    "hf_config": {
+        "strategy_weights": {
+            "trend": 0.25,
+            "mean_reversion": 0.20,
+            "momentum": 0.25,
+            "volatility": 0.15,
+            "stat_arb": 0.15
+        },
+        "signal_threshold": 0.2,
+        "hurst_window": 126,
+        "min_candles": 200
+    },
+    "experience_config": {
+        "log_decisions": true,
+        "log_trades": true,
+        "decision_log_path": "./user_data/logs/llm_decisions.jsonl",
+        "trade_log_path": "./user_data/logs/trade_experience.jsonl",
+        "max_recent_trades_context": 5,
+        "max_recent_decisions_context": 10,
+        "include_pair_specific_trades": true
+    },
+    "context_config": {
+        "max_context_tokens": 6000,
+        "system_prompt_tokens": 500,
+        "market_data_tokens": 800,
+        "enable_context_compression": true,
+        "include_timeframe_alignment": false,
+        "include_timeframe_guidance": false,
+        "indicator_history_points": 80,
+        "indicator_history_lookback": 160,
+        "raw_kline_history_points": 0,
+        "raw_kline_max_rows": 80,
+        "raw_kline_stride": 1,
+        "raw_kline_compact_format": true,
+        "raw_kline_extra_fields": [],
+        "multi_timeframe_compact_format": true,
+        "multi_timeframe_max_rows": 120,
+        "default_multi_timeframe_fields": [
+            "ema_20",
+            "ema_50",
+            "rsi",
+            "macd",
+            "macd_signal",
+            "macd_hist",
+            "atr",
+            "adx"
+        ],
+        "multi_timeframe_history": {},
+        "include_multi_timeframe_data": false
+    }
+}

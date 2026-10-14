@@ -1,0 +1,9 @@
+.env
+user_data/config.json
+user_data/logs/*.log
+user_data/logs/*.jsonl
+user_data/logs/*.json
+user_data/tradesv3.sqlite*
+user_data/*.sqlite*
+__pycache__/
+*.pyc

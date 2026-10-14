@@ -1,0 +1,16 @@
+# 基于官方 freqtrade 镜像
+# freqtrade:stable 当前为 Python 3.13/3.14，满足 langchain 1.x 要求
+FROM freqtradeorg/freqtrade:stable
+
+# 切换到 root 用户安装依赖
+USER root
+
+# langchain 1.x 全量 LLM 决策层依赖（OpenAI 兼容云端 API）
+# 如需其他 provider（anthropic/gemini/ollama），按需追加对应包
+RUN pip install --no-cache-dir \
+    langchain-core>=1.6 \
+    langchain-openai>=1.7 \
+    requests>=2.31.0
+
+# 切换回 freqtrade 用户
+USER ftuser
